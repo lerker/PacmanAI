@@ -18,10 +18,7 @@ import random
 import string
 import time
 import types
-try:
-    import Tkinter
-except:
-    import tkinter
+import tkinter
 import os.path
 
 _Windows = sys.platform == 'win32'  # True if on Win95/98/NT
@@ -40,7 +37,7 @@ def formatColor(r, g, b):
     return '#%02x%02x%02x' % (int(r * 255), int(g * 255), int(b * 255))
 
 def colorToVector(color):
-    return map(lambda x: int(x, 16) / 256.0, [color[1:3], color[3:5], color[5:7]])
+    return list(map(lambda x: int(x, 16) / 256.0, [color[1:3], color[3:5], color[5:7]]))
 
 if _Windows:
     _canvas_tfonts = ['times new roman', 'lucida console']
@@ -142,7 +139,7 @@ def _destroy_window(event=None):
 #    global _root_window
 #    _root_window.destroy()
 #    _root_window = None
-    #print "DESTROY"
+    #print("DESTROY")
 
 def end_graphics():
     global _root_window, _canvas, _mouse_enabled
@@ -151,7 +148,7 @@ def end_graphics():
             sleep(1)
             if _root_window != None:
                 _root_window.destroy()
-        except(SystemExit, e):
+        except SystemExit as e:
             print('Ending graphics raised an exception:', e)
     finally:
         _root_window = None
@@ -182,7 +179,7 @@ def square(pos, r, color, filled=1, behind=0):
     coords = [(x - r, y - r), (x + r, y - r), (x + r, y + r), (x - r, y + r)]
     return polygon(coords, color, color, filled, 0, behind=behind)
 
-def circle(pos, r, outlineColor, fillColor, endpoints=None, style='pieslice', width=2):
+def circle(pos, r, outlineColor, fillColor=None, endpoints=None, style='pieslice', width=2):
     x, y = pos
     x0, x1 = x - r - 1, x + r
     y0, y1 = y - r - 1, y + r
@@ -192,7 +189,7 @@ def circle(pos, r, outlineColor, fillColor, endpoints=None, style='pieslice', wi
         e = list(endpoints)
     while e[0] > e[1]: e[1] = e[1] + 360
 
-    return _canvas.create_arc(x0, y0, x1, y1, outline=outlineColor, fill=fillColor,
+    return _canvas.create_arc(x0, y0, x1, y1, outline=outlineColor, fill=fillColor or outlineColor,
                               extent=e[1] - e[0], start=e[0], style=style, width=width)
 
 def image(pos, file="../../blueghost.gif"):
@@ -263,7 +260,7 @@ def _keypress(event):
     #remap_arrows(event)
     _keysdown[event.keysym] = 1
     _keyswaiting[event.keysym] = 1
-#    print event.char, event.keycode
+#    print(event.char, event.keycode)
     _got_release = None
 
 def _keyrelease(event):
@@ -294,8 +291,8 @@ def _clear_keys(event=None):
     _keyswaiting = {}
     _got_release = None
 
-# def keys_pressed(d_o_e=Tkinter.tkinter.dooneevent, d_w=Tkinter.tkinter.DONT_WAIT):
-def keys_pressed(d_o_e=lambda arg: _root_window.dooneevent(arg), d_w=tkinter._tkinter.DONT_WAIT):
+def keys_pressed(d_o_e=lambda arg: _root_window.dooneevent(arg),
+                 d_w=tkinter._tkinter.DONT_WAIT):
     d_o_e(d_w)
     if _got_release:
         d_o_e(d_w)
@@ -316,8 +313,9 @@ def wait_for_keys():
         sleep(0.05)
     return keys
 
-# def remove_from_screen(x, d_o_e=Tkinter.tkinter.dooneevent, d_w=Tkinter.tkinter.DONT_WAIT):
-def remove_from_screen(x, d_o_e=lambda arg: _root_window.dooneevent(arg), d_w=tkinter._tkinter.DONT_WAIT):
+def remove_from_screen(x,
+                       d_o_e=lambda arg: _root_window.dooneevent(arg),
+                       d_w=tkinter._tkinter.DONT_WAIT):
     _canvas.delete(x)
     d_o_e(d_w)
 
@@ -327,8 +325,9 @@ def _adjust_coords(coord_list, x, y):
         coord_list[i + 1] = coord_list[i + 1] + y
     return coord_list
 
-# def move_to(object, x, y=None, d_o_e=Tkinter.tkinter.dooneevent, d_w=Tkinter.tkinter.DONT_WAIT):
-def move_to(object, x, y=None, d_o_e=lambda arg: _root_window.dooneevent(arg), d_w=tkinter._tkinter.DONT_WAIT):
+def move_to(object, x, y=None,
+            d_o_e=lambda arg: _root_window.dooneevent(arg),
+            d_w=tkinter._tkinter.DONT_WAIT):
     if y is None:
         try: x, y = x
         except: raise  'incomprehensible coordinates'
@@ -348,11 +347,12 @@ def move_to(object, x, y=None, d_o_e=lambda arg: _root_window.dooneevent(arg), d
     _canvas.coords(object, *newCoords)
     d_o_e(d_w)
 
-# def move_by(object, x, y=None, d_o_e=Tkinter.tkinter.dooneevent, d_w=Tkinter.tkinter.DONT_WAIT, lift=False):
-def move_by(object, x, y=None, d_o_e=lambda arg: _root_window.dooneevent(arg), d_w=tkinter._tkinter.DONT_WAIT, lift=False):
+def move_by(object, x, y=None,
+            d_o_e=lambda arg: _root_window.dooneevent(arg),
+            d_w=tkinter._tkinter.DONT_WAIT, lift=False):
     if y is None:
         try: x, y = x
-        except: raise(Exception, 'incomprehensible coordinates')
+        except: raise Exception('incomprehensible coordinates')
 
     horiz = True
     newCoords = []
@@ -372,7 +372,7 @@ def move_by(object, x, y=None, d_o_e=lambda arg: _root_window.dooneevent(arg), d
 
 def writePostscript(filename):
     "Writes the current canvas to a postscript file."
-    psfile = file(filename, 'w')
+    psfile = open(filename, 'w')
     psfile.write(_canvas.postscript(pageanchor='sw',
                      y='0.c',
                      x='0.c'))

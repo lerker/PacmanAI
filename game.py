@@ -246,7 +246,7 @@ class Grid:
         return tuple(bits)
 
     def _cellIndexToPosition(self, index):
-        x = index / self.height
+        x = index // self.height
         y = index % self.height
         return x, y
 
@@ -264,7 +264,7 @@ class Grid:
 
     def _unpackInt(self, packed, size):
         bools = []
-        if packed < 0: raise(ValueError, "must be a positive integer")
+        if packed < 0: raise ValueError("must be a positive integer")
         for i in range(size):
             n = 2 ** (self.CELLS_PER_INT - i - 1)
             if packed >= n:
@@ -427,7 +427,7 @@ class GameStateData:
         for i, state in enumerate( self.agentStates ):
             try:
                 int(hash(state))
-            except(TypeError, e):
+            except TypeError as e:
                 print(e)
                 #hash(state)
         return int((hash(tuple(self.agentStates)) + 13*hash(self.food) + 113* hash(tuple(self.capsules)) + 7 * hash(self.score)) % 1048575 )
@@ -528,10 +528,7 @@ class Game:
         self.totalAgentTimes = [0 for agent in agents]
         self.totalAgentTimeWarnings = [0 for agent in agents]
         self.agentTimeout = False
-        try:
-            import cStringIO
-        except:
-            import io
+        import io
         self.agentOutput = [io.StringIO() for agent in agents]
 
     def getProgress(self):
@@ -553,7 +550,7 @@ class Game:
     def mute(self, agentIndex):
         if not self.muteAgents: return
         global OLD_STDOUT, OLD_STDERR
-        import cStringIO
+        import io
         OLD_STDOUT = sys.stdout
         OLD_STDERR = sys.stderr
         sys.stdout = self.agentOutput[agentIndex]
@@ -582,7 +579,6 @@ class Game:
                 self.mute(i)
                 # this is a null agent, meaning it failed to load
                 # the other team wins
-                
                 print("Agent %d failed to load" % i, file=sys.stderr)
                 self.unmute()
                 self._agentCrash(i, quiet=True)
@@ -603,7 +599,7 @@ class Game:
                             self.agentTimeout = True
                             self._agentCrash(i, quiet=True)
                             return
-                    except(Exception,data):
+                    except Exception as data:
                         self._agentCrash(i, quiet=False)
                         self.unmute()
                         return
@@ -633,7 +629,7 @@ class Game:
                             skip_action = True
                         move_time += time.time() - start_time
                         self.unmute()
-                    except(Exception,data):
+                    except Exception as data:
                         self._agentCrash(agentIndex, quiet=False)
                         self.unmute()
                         return
@@ -674,7 +670,7 @@ class Game:
                             return
 
                     self.totalAgentTimes[agentIndex] += move_time
-                    #print "Agent: %d, time: %f, total: %f" % (agentIndex, move_time, self.totalAgentTimes[agentIndex])
+                    #print("Agent: %d, time: %f, total: %f" % (agentIndex, move_time, self.totalAgentTimes[agentIndex]))
                     if self.totalAgentTimes[agentIndex] > self.rules.getMaxTotalTime(agentIndex):
                         print("Agent %d ran out of time! (time: %1.2f)" % (agentIndex, self.totalAgentTimes[agentIndex]), file=sys.stderr)
                         self.agentTimeout = True
@@ -682,7 +678,7 @@ class Game:
                         self.unmute()
                         return
                     self.unmute()
-                except(Exception,data):
+                except Exception as data:
                     self._agentCrash(agentIndex)
                     self.unmute()
                     return
@@ -695,7 +691,7 @@ class Game:
             if self.catchExceptions:
                 try:
                     self.state = self.state.generateSuccessor( agentIndex, action )
-                except(Exception,data):
+                except Exception as data:
                     self.mute(agentIndex)
                     self._agentCrash(agentIndex)
                     self.unmute()
@@ -725,8 +721,8 @@ class Game:
                     self.mute(agentIndex)
                     agent.final( self.state )
                     self.unmute()
-                except(Exception,data):
-                    if not self.catchExceptions: raise
+                except Exception as data:
+                    if not self.catchExceptions: raise data
                     self._agentCrash(agentIndex)
                     self.unmute()
                     return

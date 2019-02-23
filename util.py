@@ -29,10 +29,7 @@
 import sys
 import inspect
 import heapq, random
-try:
-    from StringIO import StringIO
-except ImportError:
-    from io import StringIO
+
 
 class FixedRandom:
     def __init__(self):
@@ -246,12 +243,12 @@ class Counter(dict):
     all keys are defaulted to have value 0.  Using a dictionary:
 
     a = {}
-    print a['test']
+    print(a['test'])
 
     would give an error, while the Counter class analogue:
 
     >>> a = Counter()
-    >>> print a['test']
+    >>> print(a['test'])
     0
 
     returns the default 0 value. Note that to reference a key
@@ -260,14 +257,14 @@ class Counter(dict):
 
     >>> a = Counter()
     >>> a['test'] = 2
-    >>> print a['test']
+    >>> print(a['test'])
     2
 
     This is very useful for counting things without initializing their counts,
     see for example:
 
     >>> a['blah'] += 1
-    >>> print a['blah']
+    >>> print(a['blah'])
     1
 
     The counter also includes additional functionality useful in implementing
@@ -590,15 +587,14 @@ def lookup(name, namespace):
         options = [getattr(module, name) for module in modules if name in dir(module)]
         options += [obj[1] for obj in namespace.items() if obj[0] == name ]
         if len(options) == 1: return options[0]
-        if len(options) > 1: raise(Exception, 'Name conflict for %s')
-        raise(Exception, '%s not found as a method or class' % name)
+        if len(options) > 1: raise Exception('Name conflict for %s')
+        raise Exception('%s not found as a method or class' % name)
 
 def pause():
     """
     Pauses the output stream awaiting user feedback.
     """
-    print("<Press enter/return to continue>")
-    raw_input()
+    input("<Press enter/return to continue>")
 
 
 # code to handle timeouts
