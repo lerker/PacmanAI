@@ -13,6 +13,11 @@
 
 
 """
+https://github.com/dmurtari/Pacman/blob/master/searchAgents.py
+"""
+
+
+"""
 This file contains all of the agents that can be selected to control Pacman.  To
 select an agent, use the '-p' option when running pacman.py.  Arguments can be
 passed to your agent using '-a'.  For example, to load a SearchAgent that uses
@@ -295,6 +300,11 @@ class CornersProblem(search.SearchProblem):
         space)
         """
         "*** YOUR CODE HERE ***"
+        # Store visited corners in an array, and give the state as a tuple of
+        # the current state and the visited corners
+        visited = []
+        return (self.startingPosition, visited)
+
         util.raiseNotDefined()
 
     def isGoalState(self, state):
@@ -302,6 +312,9 @@ class CornersProblem(search.SearchProblem):
         Returns whether this search state is a goal state of the problem.
         """
         "*** YOUR CODE HERE ***"
+        # Corners are all visited if there are 4 elements in the corners array.
+        return len(state[1]) == 4
+
         util.raiseNotDefined()
 
     def getSuccessors(self, state):
@@ -315,6 +328,7 @@ class CornersProblem(search.SearchProblem):
             is the incremental cost of expanding to that successor
         """
 
+        """
         successors = []
         for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
             # Add a successor state to the successor list if the action is legal
@@ -327,6 +341,33 @@ class CornersProblem(search.SearchProblem):
             "*** YOUR CODE HERE ***"
 
         self._expanded += 1 # DO NOT CHANGE
+        return successors
+        """
+        successors = []
+        currentPosition = state[0]
+        foundCorners = state[1]
+        bottom, left, top, right = 1, 1, self.walls.height-2, self.walls.width-2
+
+        # For every direction from the current position, check to see if moving
+        # will hit a wall. If it doesn't, see if making the move would lead to 
+        # a corner. If so, give that move as a possible successor, and update
+        # the visited corners to reflect that the corner is visited (if that
+        # move is mode). Otherwise, just update the position without changing
+        # the visited corners. 
+        for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
+            x,y = currentPosition
+            dx, dy = Actions.directionToVector(action)
+            nextx, nexty = int(x + dx), int(y + dy)
+            hitsWall = self.walls[nextx][nexty]
+
+            if not hitsWall:
+                if (nextx, nexty) in self.corners and (nextx, nexty) not in foundCorners:
+                    visited = foundCorners + [(nextx, nexty)]
+                    successors.append((((nextx, nexty), visited), action, 1))
+                else:
+                    successors.append((((nextx, nexty), foundCorners), action, 1))
+
+        self._expanded += 1
         return successors
 
     def getCostOfActions(self, actions):
@@ -360,6 +401,33 @@ def cornersHeuristic(state, problem):
     walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
 
     "*** YOUR CODE HERE ***"
+    unvisited = []        # Hold unvisited corners
+    visited = state[1]    # Visited corners
+    node = state[0]       # Current node
+    heuristic = 0         # Heuristic value
+
+    # Find all the corners that we haven't visited yet, and append them to a 
+    # list so we can go through them
+    for corner in corners:
+        if not corner in visited:
+            unvisited.append(corner)
+    
+    # Find the sum of the shortest distances between the unvisited corners. Use 
+    # this as the heuristic because it is consistent (will always choose the
+    # same corners for a given situation). It solves the simpler problem where
+    # we find the number of moves when all of the walls have been removed. The
+    # heuristic will return 0 at a goal state since the minimum distance to a 
+    # corner when in a corner is 0, and will never return a negative since 
+    # mangattanDistance can never be negative. 
+    while unvisited:
+        distance, corner = min([(util.manhattanDistance(node, corner), corner) \
+                                for corner in unvisited])
+        heuristic += distance
+        node = corner
+        unvisited.remove(corner)
+    
+    return heuristic
+
     return 0 # Default to trivial solution
 
 class AStarCornersAgent(SearchAgent):
@@ -454,6 +522,29 @@ def foodHeuristic(state, problem):
     """
     position, foodGrid = state
     "*** YOUR CODE HERE ***"
+
+    heuristic = 0
+    food = foodGrid.asList()
+    
+    # If there isn't any food, then there isn't a problem to solve
+    if len(food) == 0:
+        return 0
+
+    # Take advantage of the given maze-distance function to determine the 
+    # heuristic. Takes an incredibly long time (~40s!), but expands only
+    # 4137 nodes. This heuristic is consistent, because the maze distance
+    # will always find the same distance to a given piece of food. This solves
+    # the simpler problem of finding the distance to the farthest piece of food.
+    # Heursitic will also return 0 at a goal (since if pacman has eaten all of 
+    # the food then the distance to the nearest food will be the one pacman is
+    # currently on), and will never return a negative (since distances can't be
+    # negative)
+    for food in food:
+        distance = mazeDistance(position, food, problem.startingGameState)
+        if distance > heuristic:
+            heuristic = distance
+    return heuristic
+
     return 0
 
 class ClosestDotSearchAgent(SearchAgent):
@@ -485,6 +576,34 @@ class ClosestDotSearchAgent(SearchAgent):
         problem = AnyFoodSearchProblem(gameState)
 
         "*** YOUR CODE HERE ***"
+        """
+        Does not always find the shortest path through the maze, because the
+        closest food might not be on the path of the shortest path through them
+        maze. For example, if there are two dots to choose from, the algorithm
+        may pick one arbitratily, which could leave the other food as the only
+        food left in that area of the maze. Then, Pacman will eat everything 
+        else before finally returning to eat that food.
+        """
+
+        # Perform a BFS to find the closest dot.
+        fringe = util.Queue()
+        visited = []        # List of already visited nodes
+        action_list = []    # List of actions taken to get to the current node
+        total_cost = 0      # Cost to get to the current node
+        initial = problem.getStartState()   # Starting state of the problem
+
+        fringe.push((initial, action_list))
+
+        while fringe: 
+            node, actions = fringe.pop() 
+            if not node in visited:
+                visited.append(node)
+                if problem.isGoalState(node):
+                    return actions
+                successors = problem.getSuccessors(node)
+                for successor in successors:
+                    coordinate, direction, cost = successor
+                    fringe.push((coordinate, actions + [direction]))
         util.raiseNotDefined()
 
 class AnyFoodSearchProblem(PositionSearchProblem):
@@ -521,6 +640,11 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         x,y = state
 
         "*** YOUR CODE HERE ***"
+        foodPositions = self.food.asList()
+
+        # The goal is if pacman's current position is a location where there is
+        # a piece of food. 
+        return (x, y) in foodPositions
         util.raiseNotDefined()
 
 def mazeDistance(point1, point2, gameState):
